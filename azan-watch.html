@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="ur" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>واچ — Azan Watch (مفتی شعیب خان آلائی)</title>
+  <meta name="theme-color" content="#0b3a5b">
+  <style>
+    :root{--bg1:#0b3a5b;--bg2:#0f172a;--fg:#fff;--card:rgba(255,255,255,0.04);--accent:#ffcc00}
+    *{box-sizing:border-box;font-family: 'Noto Nastaliq Urdu','Noto Sans Arabic','Segoe UI',Tahoma, sans-serif}
+    html,body{height:100%;margin:0;background:linear-gradient(135deg,var(--bg2),var(--bg1));color:var(--fg)}
+    .app{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:22px}
+    .watch{width:380px;max-width:96vw;border-radius:16px;padding:18px;background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));box-shadow:0 10px 30px rgba(2,6,23,0.6);backdrop-filter:blur(6px)}
+    .top{display:flex;justify-content:space-between;align-items:center}
+    .title{font-size:13px;opacity:0.95}
+    .time{font-size:48px;text-align:center;font-weight:700;margin-top:8px}
+    .dates{display:flex;justify-content:space-between;margin-top:8px}
+    .date{font-size:13px}
+    .prayer-list{margin-top:12px;border-radius:10px;padding:8px;background:var(--card)}
+    .prayer{display:flex;justify-content:space-between;padding:8px 6px;border-bottom:1px dashed rgba(255,255,255,0.03)}
+    .prayer:last-child{border-bottom:none}
+    .now{font-weight:700}
+    .brand{margin-top:12px;text-align:center;font-size:13px;opacity:0.95}
+    .controls{display:flex;gap:8px;margin-top:12px}
+    .btn{flex:1;padding:8px;border-radius:8px;background:rgba(255,255,255,0.04);text-align:center;cursor:pointer}
+    .color-row{display:flex;gap:8px;margin-top:10px}
+    input[type='color']{height:40px;width:100%;border-radius:8px;border:none;padding:0}
+    .small{font-size:12px;opacity:0.9}
+    footer{font-size:12px;text-align:center;margin-top:8px;opacity:0.8}
+    .row{display:flex;gap:8px;align-items:center}
+    @media (min-width:900px){.watch{width:460px}}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="watch" id="watch">
+      <div class="top">
+        <div class="title">Azan Watch • واچ</div>
+        <div id="locationLabel" class="small">مقام: --</div>
+      </div>
+
+      <div class="time" id="clock">--:--:--</div>
+
+      <div class="dates">
+        <div class="date" id="hijri">هجری: --</div>
+        <div class="date" id="shamsi">شمسی: --</div>
+      </div>
+
+      <div style="margin-top:10px;display:flex;gap:8px;align-items:center;">
+        <select id="method" class="small" style="flex:1;padding:8px;border-radius:8px;background:transparent;color:inherit;border:1px solid rgba(255,255,255,0.04)">
+          <option value="Karachi">Karachi (پاکستان)</option>
+          <option value="MWL">Muslim World League</option>
+          <option value="ISNA">ISNA</option>
+          <option value="Egypt">Egypt</option>
+          <option value="Tehran">Tehran</option>
+          <option value="Jafari">Jafari</option>
+        </select>
+        <div id="setLocation" class="btn small">مقام حاصل کریں</div>
+      </div>
+
+      <div class="prayer-list" id="prayers"></div>
+
+      <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+        <input type="file" id="azanFile" accept="audio/*" class="small" />
+        <div id="downloadBtn" class="btn small">HTML ڈاؤن لوڈ</div>
+      </div>
+
+      <div class="row" style="margin-top:8px">
+        <div id="generatePwa" class="btn small">PWA فائلز بنائیں</div>
+        <div id="installBtn" class="btn small">انسٹال کریں</div>
+      </div>
+
+      <div class="color-row">
+        <input type="color" id="c1" title="Shade 1">
+        <input type="color" id="c2" title="Shade 2">
+      </div>
+
+      <div class="brand">مفتی شعیب خان آلائی</div>
+      <footer class="small">نوٹ: PWA کے لیے یہ فائل HTTPS یا local server پر ہونی چاہیے۔ میں نے آپ کے لیے manifest + service-worker جنریٹر شامل کر دیا ہے — نیچے 'PWA فائلز بنائیں' دبائیں۔</footer>
+      <audio id="azanAudio" preload="auto"></audio>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/adhan@4.3.0/dist/adhan.min.js"></script>
+  <script>
+    // clock + dates
+    function two(n){return n<10?'0'+n:n}
+    function updateClock(){const now=new Date();document.getElementById('clock').textContent=two(now.getHours())+':'+two(now.getMinutes())+':'+two(now.getSeconds());}
+    setInterval(updateClock,1000); updateClock();
+
+    function gregorianToHijri(gd, gm, gy){const d=Math.floor((14-gm)/12);const y=gy+4800-d;const m=gm+12*d-3;const jdn=gd+Math.floor((153*m+2)/5)+365*y+Math.floor(y/4)-Math.floor(y/100)+Math.floor(y/400)-32045;let islamic=jdn-1948440+10632;let n=Math.floor((islamic-1)/10631);islamic=islamic-10631*n+354;let j=(Math.floor((10985-islamic)/5316))*(Math.floor((50*islamic)/17719))+(Math.floor(islamic/5670))*(Math.floor((43*islamic)/15238));islamic=islamic-(Math.floor((30-j)/15))*(Math.floor((17719*j)/50))-(Math.floor(j/16))*(Math.floor((15238*j)/43))+29;const mIslamic=Math.floor((24*islamic)/709);const dIslamic=islamic-Math.floor((709*mIslamic)/24);const yIslamic=30*n+j-30;return{d:dIslamic,m:mIslamic,y:yIslamic};}
+    function gregorianToJalali(gy, gm, gd){var g_d_m=[0,31,59,90,120,151,181,212,243,273,304,334];var jy;var gy2=(gm>2)?(gy+1):gy;var days=355666+(365*gy)+Math.floor((gy2+3)/4)-Math.floor((gy2+99)/100)+Math.floor((gy2+399)/400)+gd+g_d_m[gm-1];jy=-1595+(33*Math.floor(days/12053));days=days%12053;jy+=4*Math.floor(days/1461);days%=1461;if(days>365){jy+=Math.floor((days-1)/365);days=(days-1)%365;}var jm=(days<186)?1+Math.floor(days/31):7+Math.floor((days-186)/30);var jd=1+((days<186)?days%31:(days-186)%30);return{jy:jy,jm:jm,jd:jd};}
+    function updateDates(){const now=new Date();const gD=now.getDate(),gM=now.getMonth()+1,gY=now.getFullYear();const h=gregorianToHijri(gD,gM,gY);document.getElementById('hijri').textContent='هجری: '+h.d+' / '+h.m+' / '+h.y;const p=gregorianToJalali(gY,gM,gD);document.getElementById('shamsi').textContent='شمسی: '+p.jd+' / '+p.jm+' / '+p.jy;}
+    setInterval(updateDates,60000); updateDates();
+
+    // adhan
+    const methodSelect=document.getElementById('method'); let calcMethod=adhan.CalculationMethod.Karachi(); function selectMethod(name){switch(name){case 'Karachi':calcMethod=adhan.CalculationMethod.Karachi();break;case 'MWL':calcMethod=adhan.CalculationMethod.MuslimWorldLeague();break;case 'ISNA':calcMethod=adhan.CalculationMethod.ISNA();break;case 'Egypt':calcMethod=adhan.CalculationMethod.Egypt();break;case 'Tehran':calcMethod=adhan.CalculationMethod.Tehran();break;case 'Jafari':calcMethod=adhan.CalculationMethod.Jafari();break;default:calcMethod=adhan.CalculationMethod.Karachi();}} methodSelect.onchange=()=>{selectMethod(methodSelect.value); if(lastPosition) showPrayers(lastPosition.lat,lastPosition.lng);}; selectMethod(methodSelect.value);
+    const prayerNamesUrdu={fajr:'فجر',sunrise:'طلوعِ آفتاب',dhuhr:'ظہر',asr:'عصر',maghrib:'مغرب',isha:'عشاء'};
+
+    let lastPosition=null; let currentTimes={};
+    function showPrayers(lat,lng){lastPosition={lat:lat,lng:lng};const date=new Date();const coordinates=new adhan.Coordinates(lat,lng);const params=calcMethod;params.madhab=adhan.Madhab.Shafi;const prayerTimes=new adhan.PrayerTimes(coordinates,date,params);currentTimes={fajr:prayerTimes.fajr,sunrise:prayerTimes.sunrise,dhuhr:prayerTimes.dhuhr,asr:prayerTimes.asr,maghrib:prayerTimes.maghrib,isha:prayerTimes.isha};const container=document.getElementById('prayers');container.innerHTML='';for(const k of ['fajr','sunrise','dhuhr','asr','maghrib','isha']){const d=currentTimes[k];const hh=two(d.getHours()),mm=two(d.getMinutes());const div=document.createElement('div');div.className='prayer';div.innerHTML=`<div>${prayerNamesUrdu[k]}</div><div id='t_${k}'>${hh}:${mm}</div>`;container.appendChild(div);} }
+
+    document.getElementById('setLocation').onclick=()=>{if(navigator.geolocation){navigator.geolocation.getCurrentPosition(pos=>{const lat=pos.coords.latitude,lng=pos.coords.longitude;document.getElementById('locationLabel').textContent='مقام: '+lat.toFixed(3)+', '+lng.toFixed(3);showPrayers(lat,lng);},err=>{alert('مقام حاصل نہیں ہوا: '+err.message)},{timeout:15000});}else alert('براؤزر مقام کی حمایت نہیں کرتا');};
+    showPrayers(24.8607,67.0011);
+
+    // azan audio
+    const azanAudio=document.getElementById('azanAudio'); document.getElementById('azanFile').addEventListener('change',e=>{const f=e.target.files[0]; if(!f) return; const url=URL.createObjectURL(f); azanAudio.src=url; azanAudio.load();});
+    function playAzan(){ if(azanAudio.src){ azanAudio.currentTime=0; azanAudio.play().catch(e=>console.log('play blocked',e)); } else { beepSequence(); }}
+    function beep(ms){try{const ctx=new (window.AudioContext||window.webkitAudioContext)();const o=ctx.createOscillator();const g=ctx.createGain();o.type='sine';o.frequency.value=600;g.gain.value=0.05;o.connect(g);g.connect(ctx.destination);o.start();setTimeout(()=>{o.stop();ctx.close();},ms);}catch(e){console.log(e)}}function beepSequence(){beep(300); setTimeout(()=>beep(300),400); setTimeout(()=>beep(400),900);}setInterval(()=>{const now=new Date();for(const k in currentTimes){const t=currentTimes[k]; if(!t) continue; if(t.getHours()===now.getHours() && t.getMinutes()===now.getMinutes()){playAzan();}}},15000);
+
+    // colors
+    const c1=document.getElementById('c1'), c2=document.getElementById('c2'); c1.value='#0b3a5b'; c2.value='#0f172a'; function applyColors(){document.documentElement.style.setProperty('--bg1', c1.value); document.documentElement.style.setProperty('--bg2', c2.value);} c1.oninput=applyColors; c2.oninput=applyColors; applyColors();
+
+    // download HTML
+    document.getElementById('downloadBtn').onclick=()=>{const doc='<!doctype html>'+document.documentElement.outerHTML;const blob=new Blob([doc],{type:'text/html'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='azan-watch.html';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);};
+
+    // PWA generator: creates manifest.json, service-worker.js and simple icon (SVG) for download
+    document.getElementById('generatePwa').onclick=()=>{
+      const manifest={name:'Azan Watch',short_name:'AzanWatch',start_url:'/',display:'standalone',background_color:'#0b3a5b',theme_color:'#0b3a5b',icons:[{src:'icon-192.png',sizes:'192x192',type:'image/png'},{src:'icon-512.png',sizes:'512x512',type:'image/png'}]};
+      const manifestBlob=new Blob([JSON.stringify(manifest,null,2)],{type:'application/json'});
+      const swCode=`self.addEventListener('install',e=>{self.skipWaiting();});self.addEventListener('activate',e=>{clients.claim();});self.addEventListener('fetch',e=>{e.respondWith(fetch(e.request).catch(()=>caches.match(e.request)));});`;
+      const swBlob=new Blob([swCode],{type:'text/javascript'});
+      // simple SVG icon and PNG conversion not done (can't convert to png client-side easily without canvas), provide SVG as icon
+      const svg=`<svg xmlns='http://www.w3.org/2000/svg' width='512' height='512'><rect width='100%' height='100%' rx='60' fill='${getComputedStyle(document.documentElement).getPropertyValue('--bg1').trim()}'/><text x='50%' y='52%' font-size='120' text-anchor='middle' fill='white' font-family='sans-serif'>آ</text></svg>`;
+      const svgBlob=new Blob([svg],{type:'image/svg+xml'});
+      downloadBlob(manifestBlob,'manifest.json');
+      downloadBlob(swBlob,'service-worker.js');
+      downloadBlob(svgBlob,'icon.svg');
+      alert('manifest.json، service-worker.js اور icon.svg ڈاؤن لوڈ کر لیے گئے ہیں۔ انہیں اپنی ویب سائٹ کے روٹ میں اپ لوڈ کریں اور manifest.json کو <link rel="manifest"> کے ساتھ جوڑیں۔ (PWA کے لیے HTTPS ضروری ہے)');
+    };
+
+    function downloadBlob(blob, name){ const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); }
+
+    // Install prompt (handles browser beforeinstallprompt)
+    let deferredPrompt=null; window.addEventListener('beforeinstallprompt', (e)=>{e.preventDefault(); deferredPrompt=e; document.getElementById('installBtn').style.display='inline-block';});
+    document.getElementById('installBtn').onclick=async ()=>{ if(deferredPrompt){ deferredPrompt.prompt(); const choice=await deferredPrompt.userChoice; if(choice.outcome==='accepted'){alert('ایپ انسٹال ہو گئی۔'); } else alert('انسٹال منسوخ۔'); deferredPrompt=null; } else { alert('یہ براؤزر ان-پلیس انسٹال سپورٹ نہیں کر رہا۔ PWA بنانے کے لیے "PWA فائلز بنائیں" دبائیں اور فائلز کو HTTPS سرور پر رکھیں۔'); }}
+  </script>
+<audio id="azan-audio" src="azan_alert.mp3" preload="auto"></audio>
+
+<script>
+function playAzanTest(){
+  var audio = document.getElementById('azan-audio');
+  if(audio){
+    audio.currentTime = 0;
+    audio.play();
+  }
+}
+</script>
+
+<button onclick="playAzanTest()" style="margin-top:20px;padding:10px 20px;font-size:16px;">اذان ٹیسٹ کریں</button>
+</body>
+</html>
