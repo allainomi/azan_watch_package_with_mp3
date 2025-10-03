@@ -18,18 +18,24 @@ jobs:
       with:
         node-version: '18'
         
+    - name: Setup Java JDK
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
     - name: Install Bubblewrap
       run: |
         npm install -g @bubblewrap/cli
         
-    - name: Initialize TWA project
+    - name: Initialize TWA project (non-interactive)
       run: |
-        npx @bubblewrap/cli init --manifest=https://YOUR-DOMAIN.com/manifest.json --directory=twa-project
+        npx @bubblewrap/cli init --manifest=https://YOUR-DOMAIN.com/manifest.json --directory=twa-project --yes
         
     - name: Build APK
       run: |
         cd twa-project
-        npx @bubblewrap/cli build
+        npx @bubblewrap/cli build --yes
         
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
