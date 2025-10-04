@@ -1,43 +1,72 @@
-name: Generate TWA Assets
-on: workflow_dispatch
+name: Build TWA APK
+on: 
+  workflow_dispatch:
+  push:
+    branches: [main]
 
 jobs:
-  generate:
+  build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - name: Create TWA config
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Android Environment
+      uses: android-actions/setup-android@v3
+      
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    - name: Create TWA project manually
       run: |
-        # Create assetlinks.json for TWA
-        cat > assetlinks.json << 'EOF'
-        [{
-          "relation": ["delegate_permission/common.handle_all_urls"],
-          "target": {
-            "namespace": "web",
-            "site": "https://YOUR-DOMAIN.com"
-          }
-        }]
+        # Create basic Android project structure
+        mkdir -p twa-manual/app/src/main/res
+        mkdir -p twa-manual/app/src/main/java/com/azanwatch
+        
+        # Create basic files
+        cat > twa-manual/build.gradle << 'EOF'
+        plugins {
+            id 'com.android.application'
+        }
+        
+        android {
+            compileSdk 34
+            namespace 'com.azanwatch.twa'
+            
+            defaultConfig {
+                applicationId "com.azanwatch.twa"
+                minSdk 21
+                targetSdk 34
+                versionCode 1
+                versionName "1.0"
+            }
+            
+            buildTypes {
+                release {
+                    minifyEnabled false
+                    proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+                }
+            }
+        }
+        
+        dependencies {
+            implementation 'androidx.appcompat:appcompat:1.6.1'
+            implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.5.0'
+        }
         EOF
         
-        # Create basic TWA documentation
-        cat > TWA_INSTRUCTIONS.md << 'EOF'
-        # TWA Build Instructions
+        echo "Manual TWA structure created"
         
-        1. Host your PWA on HTTPS (Netlify, Vercel, GitHub Pages)
-        2. Update manifest.json with your domain
-        3. Use Android Studio with Bubblewrap CLI
-        4. Build signed APK for Play Store
+    - name: Create APK placeholder
+      run: |
+        echo "TWA APK would be built here" > twa-manual/README.txt
+        echo "Full TWA requires signed APK and Play Store deployment" >> twa-manual/README.txt
         
-        Your files are ready for TWA conversion!
-        EOF
-        
-    - name: Upload TWA assets
+    - name: Upload TWA structure
       uses: actions/upload-artifact@v4
       with:
-        name: twa-assets
-        path: |
-          assetlinks.json
-          TWA_INSTRUCTIONS.md
-          manifest.json
-          icon-192.png
-          icon-512.png
+        name: twa-manual-structure
+        path: twa-manual/
