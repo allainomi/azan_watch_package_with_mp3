@@ -1,39 +1,17 @@
-name: Build Real TWA APK
-on: 
-  workflow_dispatch:
-  push:
-    branches: [main]
-
+name: Test Real APK Build
+on: workflow_dispatch
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    
-    - name: Setup Java
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-        
-    - name: Install Android Command Line Tools
+    - name: Create Real APK Structure
       run: |
-        wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
-        unzip commandlinetools-linux-*.zip
-        mkdir -p android-sdk/cmdline-tools/latest
-        mv cmdline-tools/* android-sdk/cmdline-tools/latest/
-        
-    - name: Generate Simple APK (Test)
-      run: |
-        echo "Creating basic APK structure..."
-        # یہ ایک basic APK بنائے گا
-        mkdir -p app-build
-        cd app-build
-        # یہاں actual build commands ہوں گی
-        echo "APK build would happen here" > output.txt
-        echo "Need HTTPS website for real TWA" >> output.txt
-        
+        mkdir -p real-apk
+        # Actual build commands یہاں آئیں گی
+        echo "Real APK: 20-50 MB" > real-apk/size-info.txt
+        echo "Current: Only structure" > real-apk/current-status.txt
     - uses: actions/upload-artifact@v4
       with:
-        name: apk-build-info
-        path: app-build/
+        name: real-apk-info
+        path: real-apk/
