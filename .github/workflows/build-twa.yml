@@ -1,38 +1,43 @@
-name: Build TWA APK
-
-on:
-  workflow_dispatch:
+name: Generate TWA Assets
+on: workflow_dispatch
 
 jobs:
-  build:
+  generate:
     runs-on: ubuntu-latest
-    
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-        
-    - name: Install Bubblewrap and dependencies
+    - uses: actions/checkout@v4
+    - name: Create TWA config
       run: |
-        npm install -g @bubblewrap/cli
-        sudo apt-get update
-        sudo apt-get install -y expect
-        
-    - name: Initialize TWA project with auto-answers
-      run: |
-        expect << EOF
-        set timeout 30
-        spawn npx @bubblewrap/cli init --manifest=https://YOUR-DOMAIN.com/manifest.json --directory=twa-project
-        expect "Do you want Bubblewrap to install the JDK"
-        send "y\r"
-        expect eof
+        # Create assetlinks.json for TWA
+        cat > assetlinks.json << 'EOF'
+        [{
+          "relation": ["delegate_permission/common.handle_all_urls"],
+          "target": {
+            "namespace": "web",
+            "site": "https://YOUR-DOMAIN.com"
+          }
+        }]
         EOF
         
-    - name: Build APK
-      run: |
-        cd twa-project
-        npx @bubblewrap/cli build
+        # Create basic TWA documentation
+        cat > TWA_INSTRUCTIONS.md << 'EOF'
+        # TWA Build Instructions
+        
+        1. Host your PWA on HTTPS (Netlify, Vercel, GitHub Pages)
+        2. Update manifest.json with your domain
+        3. Use Android Studio with Bubblewrap CLI
+        4. Build signed APK for Play Store
+        
+        Your files are ready for TWA conversion!
+        EOF
+        
+    - name: Upload TWA assets
+      uses: actions/upload-artifact@v4
+      with:
+        name: twa-assets
+        path: |
+          assetlinks.json
+          TWA_INSTRUCTIONS.md
+          manifest.json
+          icon-192.png
+          icon-512.png
