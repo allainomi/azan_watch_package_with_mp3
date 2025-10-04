@@ -16,32 +16,23 @@ jobs:
       with:
         node-version: '18'
         
-    - name: Setup Java JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-        
-    - name: Install Bubblewrap
+    - name: Install Bubblewrap and dependencies
       run: |
         npm install -g @bubblewrap/cli
+        sudo apt-get update
+        sudo apt-get install -y expect
         
-    - name: Check Java installation
+    - name: Initialize TWA project with auto-answers
       run: |
-        java -version
-        javac -version
-        
-    - name: Initialize TWA project
-      run: |
-        npx @bubblewrap/cli init --manifest=https://YOUR-DOMAIN.com/manifest.json --directory=twa-project
+        expect << EOF
+        set timeout 30
+        spawn npx @bubblewrap/cli init --manifest=https://YOUR-DOMAIN.com/manifest.json --directory=twa-project
+        expect "Do you want Bubblewrap to install the JDK"
+        send "y\r"
+        expect eof
+        EOF
         
     - name: Build APK
       run: |
         cd twa-project
         npx @bubblewrap/cli build
-        
-    - name: Upload APK artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: azan-watch-twa
-        path: twa-project/app/build/outputs/apk/release/*.apk
