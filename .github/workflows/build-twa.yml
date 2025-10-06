@@ -1,17 +1,29 @@
-name: Build Test APK
-on: workflow_dispatch
+name: Android CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Create Real APK Test
-      run: |
-        echo "یہ ایک اصل APK build کا test ہے"
-        echo "اگر یہ کام کر جائے تو آپ کو 20+ MB کی فائل ملے گی"
-        echo "ورنہ ہم دوسرا راستہ اپنائیں گے"
-        
-        # Simple APK بنانے کی کوشش
-        mkdir -p real-apk-output
-        echo "Actual APK content would be here" > real-apk-output/test.txt
+      - uses: actions/checkout@v3
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Build with Gradle
+        run: ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: app-debug
+          path: app/build/outputs/apk/debug/app-debug.apk
