@@ -1,74 +1,16 @@
 name: Flutter Build
-
-on:
-  push:
-    branches: [ main ]
-
+on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2.10.0
-        
-      - name: Create Complete New Project
-        run: |
-          # مکمل نئی ڈائریکٹری بنائیں
-          mkdir -p iqra_islamic_app
-          cd iqra_islamic_app
-          
-          # نیا Flutter project بنائیں
-          flutter create --org com.iqra --platforms android .
-          
-          # Simple app بنائیں
-          cat > lib/main.dart << 'EOF'
-import 'package:flutter/material.dart';
-
-void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Iqra Islamic Wisdom',
-      theme: ThemeData(
-        primarySwatch: Colors.green,
-      ),
-      home: const HomeScreen(),
-    );
-  }
-}
-
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Iqra Islamic Wisdom'),
-      ),
-      body: const Center(
-        child: Text(
-          'Welcome to Iqra Islamic Wisdom App',
-          style: TextStyle(fontSize: 20),
-        ),
-      ),
-    );
-  }
-}
-EOF
-          
-      - name: Build APK
-        run: |
-          cd iqra_islamic_app
+      - run: |
+          flutter create --platforms android iqra_app
+          cd iqra_app
           flutter build apk --release
-        
       - uses: actions/upload-artifact@v4
         with:
-          name: iqra-islamic-app
-          path: iqra_islamic_app/build/app/outputs/flutter-apk/app-release.apk
+          name: apk
+          path: iqra_app/build/app/outputs/flutter-apk/app-release.apk
